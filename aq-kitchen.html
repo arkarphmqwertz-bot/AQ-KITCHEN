@@ -1,0 +1,653 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AQ KITCHEN | Inventory Control</title>
+<style>
+:root {
+  --bg:#f4f5f7; --card:#fff; --dark:#171c28;
+  --gold:#d5a447; --text:#202635; --muted:#89909e;
+  --green:#16845b; --red:#d94d4d; --line:#e9ebef;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:Inter,"Segoe UI",Arial,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer;border:0}
+.app{display:flex;min-height:100vh}
+.sidebar{width:245px;background:var(--dark);color:white;
+  padding:25px 16px;position:fixed;inset:0 auto 0 0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:38px;padding:0 8px}
+.logo{background:var(--gold);color:#171c28;width:43px;height:43px;
+  display:grid;place-items:center;border-radius:13px;font-size:23px}
+.brand h2{font-size:19px;letter-spacing:2px;margin:0}
+.brand small{color:#9ca3af;font-size:9px;letter-spacing:1.5px}
+.nav-label{font-size:10px;color:#7e8797;letter-spacing:2px;
+  margin:24px 10px 10px}
+.nav{display:flex;flex-direction:column;gap:5px}
+.nav button{background:transparent;color:#aeb6c4;text-align:left;
+  padding:13px 14px;border-radius:10px;font-size:13px}
+.nav button:hover,.nav button.active{background:#30394a;color:white}
+.nav button.active{border-left:3px solid var(--gold)}
+.sidebar-bottom{position:absolute;bottom:22px;left:22px;color:#8b94a4;font-size:11px}
+.main{margin-left:245px;width:calc(100% - 245px);padding:30px 35px}
+.top{display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:28px;gap:12px}
+.top small{color:var(--muted)}
+.top h1{font-size:25px;margin:5px 0}
+.status{background:#e1f4e9;color:var(--green);padding:9px 14px;
+  border-radius:30px;font-size:12px;font-weight:700}
+.page{display:none}.page.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);
+  border-radius:15px;padding:20px}
+.metric-label{font-size:11px;color:var(--muted);letter-spacing:.6px}
+.metric{font-size:27px;font-weight:750;margin:12px 0 5px}
+.metric-note{font-size:11px;color:var(--muted)}
+.green{color:var(--green)}.red{color:var(--red)}
+.section-head{display:flex;justify-content:space-between;
+  align-items:center;gap:12px;margin:25px 0 15px}
+.section-head h3{margin:0;font-size:16px}
+.panel{background:white;border:1px solid var(--line);
+  border-radius:15px;padding:20px;margin-bottom:18px}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.field label{display:block;font-size:11px;color:#737d8d;margin-bottom:7px}
+.field input,.field select,.search{
+  width:100%;padding:11px;border:1px solid var(--line);
+  border-radius:9px;background:#fff;outline:none;color:var(--text)
+}
+.field input:focus,.field select:focus{border-color:var(--gold)}
+.btn{padding:11px 17px;border-radius:9px;font-size:12px;font-weight:650}
+.primary{background:var(--dark);color:white}
+.gold{background:var(--gold);color:#171c28}
+.secondary{background:#eef0f4;color:#414958}
+.danger{background:#fff0f0;color:var(--red)}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}
+th{text-align:left;color:#7d8695;font-size:10px;
+  letter-spacing:.5px;background:#f8f9fb}
+th,td{padding:13px 12px;border-bottom:1px solid var(--line)}
+td{color:#3e4655}
+.pill{padding:5px 9px;border-radius:20px;font-size:10px;
+  background:#e7f5ed;color:var(--green)}
+.pill.low{background:#fff0e4;color:#cb762b}
+.empty{text-align:center;padding:35px;color:var(--muted)}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.actions .search{max-width:230px}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.quick button{background:#f5f6f8;border:1px solid var(--line);
+  border-radius:12px;padding:18px;text-align:left;color:var(--text)}
+.quick strong{display:block;margin-top:9px;font-size:13px}
+.quick span{font-size:21px;color:var(--gold)}
+.note{font-size:11px;color:var(--muted);line-height:1.6}
+.toast{position:fixed;bottom:22px;right:22px;background:#171c28;
+  color:white;padding:13px 20px;border-radius:10px;display:none;z-index:20}
+@media(max-width:850px){
+ .sidebar{width:68px;padding:18px 8px}
+ .brand{justify-content:center;padding:0;margin-bottom:28px}
+ .brand-text,.nav-label,.nav button .txt,.sidebar-bottom{display:none}
+ .nav button{text-align:center;padding:14px 4px;font-size:18px}
+ .main{margin-left:68px;width:calc(100% - 68px);padding:20px 14px}
+ .grid{grid-template-columns:repeat(2,1fr)}
+ .form-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:480px){
+ .form-grid{grid-template-columns:1fr}
+ .top h1{font-size:19px}
+ .grid{gap:9px}.card{padding:14px}
+ .metric{font-size:22px}
+ .quick{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">♨</div>
+    <div class="brand-text">
+      <h2>AQ KITCHEN</h2>
+      <small>INVENTORY CONTROL</small>
+    </div>
+  </div>
+  <div class="nav-label">WORKSPACE</div>
+  <div class="nav">
+    <button class="active" data-page="dashboard">◫ <span class="txt">Dashboard</span></button>
+    <button data-page="inventory">▦ <span class="txt">Inventory</span></button>
+    <button data-page="purchase">＋ <span class="txt">Purchase IN</span></button>
+    <button data-page="sales">♨ <span class="txt">Menu Sales</span></button>
+    <button data-page="recipes">≡ <span class="txt">Recipe / BOM</span></button>
+    <button data-page="waste">⌫ <span class="txt">Waste Log</span></button>
+    <button data-page="report">▤ <span class="txt">Stock Report</span></button>
+  </div>
+  <div class="nav-label">SYSTEM</div>
+  <div class="nav">
+    <button data-page="backup">⚙ <span class="txt">Backup & Data</span></button>
+  </div>
+  <div class="sidebar-bottom">AQ KITCHEN · VERSION 1.0</div>
+</aside>
+
+<main class="main">
+<header class="top">
+  <div>
+    <small id="today"></small>
+    <h1 id="pageTitle">Kitchen Overview</h1>
+  </div>
+  <div class="status">● Offline Mode</div>
+</header>
+
+<!-- DASHBOARD -->
+<section class="page active" id="dashboard">
+  <div class="grid">
+    <div class="card"><div class="metric-label">TOTAL ITEMS</div>
+      <div class="metric" id="totalItems">0</div>
+      <div class="metric-note">Registered ingredients</div></div>
+    <div class="card"><div class="metric-label">PURCHASE TODAY</div>
+      <div class="metric" id="todayPurchase">0</div>
+      <div class="metric-note">MMK</div></div>
+    <div class="card"><div class="metric-label">MENU USAGE TODAY</div>
+      <div class="metric" id="todayUsage">0</div>
+      <div class="metric-note">Stock units combined</div></div>
+    <div class="card"><div class="metric-label">LOW STOCK ALERT</div>
+      <div class="metric red" id="lowStock">0</div>
+      <div class="metric-note">Items below reorder level</div></div>
+  </div>
+  <div class="panel">
+    <div class="section-head"><h3>Today's Stock Movement</h3>
+      <span class="note" id="dashDate"></span></div>
+    <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+      <div><div class="metric-label">PURCHASE IN</div><h3 class="green" id="dIn">0</h3></div>
+      <div><div class="metric-label">MENU USAGE OUT</div><h3 class="red" id="dOut">0</h3></div>
+      <div><div class="metric-label">WASTE</div><h3 class="red" id="dWaste">0</h3></div>
+      <div><div class="metric-label">CLOSING STOCK</div><h3 id="dClosing">0</h3></div>
+    </div>
+  </div>
+  <div class="section-head"><h3>Quick Actions</h3></div>
+  <div class="quick">
+    <button onclick="showPage('purchase')"><span>＋</span><strong>Record Purchase</strong><small class="note">Add new stock</small></button>
+    <button onclick="showPage('sales')"><span>♨</span><strong>Enter Menu Sales</strong><small class="note">Deduct recipe ingredients</small></button>
+    <button onclick="showPage('waste')"><span>⌫</span><strong>Record Waste</strong><small class="note">Track kitchen loss</small></button>
+  </div>
+  <div class="section-head"><h3>Low Stock Items</h3></div>
+  <div class="panel table-wrap"><table>
+    <thead><tr><th>ITEM</th><th>STOCK</th><th>REORDER LEVEL</th><th>STATUS</th></tr></thead>
+    <tbody id="lowTable"></tbody>
+  </table></div>
+</section>
+
+<!-- INVENTORY -->
+<section class="page" id="inventory">
+  <div class="panel">
+    <div class="section-head"><h3>Add Kitchen Item</h3></div>
+    <form id="itemForm" class="form-grid">
+      <div class="field"><label>ITEM CODE</label><input id="iCode" placeholder="KIT-001" required></div>
+      <div class="field"><label>ITEM NAME</label><input id="iName" placeholder="Chicken Breast" required></div>
+      <div class="field"><label>CATEGORY</label><select id="iCategory"><option>Meat</option><option>Vegetable</option><option>Seafood</option><option>Dry Goods</option><option>Spices</option><option>Dairy</option><option>Other</option></select></div>
+      <div class="field"><label>STOCK UNIT</label><select id="iUnit"><option>kg</option><option>g</option><option>L</option><option>ml</option><option>pcs</option><option>pack</option><option>bundle</option><option>Viss</option></select></div>
+      <div class="field"><label>OPENING STOCK</label><input id="iOpening" type="number" min="0" step="any" value="0"></div>
+      <div class="field"><label>REORDER LEVEL</label><input id="iReorder" type="number" min="0" step="any" value="0"></div>
+      <div><button class="btn primary">＋ Add Item</button></div>
+    </form>
+  </div>
+  <div class="section-head"><h3>Kitchen Inventory</h3>
+    <div class="actions"><input class="search" id="itemSearch" placeholder="Search item..."></div>
+  </div>
+  <div class="panel table-wrap"><table>
+    <thead><tr><th>CODE</th><th>ITEM</th><th>CATEGORY</th><th>UNIT</th><th>OPENING</th><th>CURRENT STOCK</th><th>STATUS</th><th></th></tr></thead>
+    <tbody id="itemTable"></tbody>
+  </table></div>
+</section>
+
+<!-- PURCHASE -->
+<section class="page" id="purchase">
+  <div class="panel">
+    <div class="section-head"><h3>New Purchase Entry</h3></div>
+    <form id="purchaseForm" class="form-grid">
+      <div class="field"><label>DATE</label><input id="pDate" type="date" required></div>
+      <div class="field"><label>ITEM</label><select id="pItem" required></select></div>
+      <div class="field"><label>SUPPLIER</label><input id="pSupplier" placeholder="Supplier name"></div>
+      <div class="field"><label>QUANTITY</label><input id="pQty" type="number" min="0.0001" step="any" required></div>
+      <div class="field"><label>PURCHASE UNIT</label><select id="pUnit"><option>Same as stock unit</option><option>Viss</option><option>kg</option><option>g</option><option>L</option><option>ml</option><option>pcs</option></select></div>
+      <div class="field"><label>UNIT PRICE (MMK)</label><input id="pPrice" type="number" min="0" step="any" value="0"></div>
+      <div class="field"><label>INVOICE / REF</label><input id="pRef" placeholder="Invoice number"></div>
+      <div><button class="btn primary">＋ Save Purchase</button></div>
+    </form>
+  </div>
+  <div class="section-head"><h3>Purchase History</h3></div>
+  <div class="panel table-wrap"><table>
+    <thead><tr><th>DATE</th><th>ITEM</th><th>SUPPLIER</th><th>QTY IN</th><th>AMOUNT</th><th></th></tr></thead>
+    <tbody id="purchaseTable"></tbody>
+  </table></div>
+</section>
+
+<!-- SALES -->
+<section class="page" id="sales">
+  <div class="panel">
+    <div class="section-head"><h3>Record Menu Sales</h3></div>
+    <form id="salesForm" class="form-grid">
+      <div class="field"><label>DATE</label><input id="sDate" type="date" required></div>
+      <div class="field"><label>MENU</label><select id="sMenu" required></select></div>
+      <div class="field"><label>QUANTITY SOLD</label><input id="sQty" type="number" min="1" step="1" required></div>
+      <div class="field"><label>SALES REFERENCE</label><input id="sRef" placeholder="POS / Bill No."></div>
+      <div><button class="btn primary">＋ Record Sales</button></div>
+    </form>
+    <p class="note">Sales quantity × recipe quantity = automatic ingredient usage. Make sure the recipe has been set up first.</p>
+  </div>
+  <div class="section-head"><h3>Sales History</h3></div>
+  <div class="panel table-wrap"><table>
+    <thead><tr><th>DATE</th><th>MENU</th><th>QTY SOLD</th><th>REFERENCE</th><th></th></tr></thead>
+    <tbody id="salesTable"></tbody>
+  </table></div>
+</section>
+
+<!-- RECIPE -->
+<section class="page" id="recipes">
+  <div class="panel">
+    <div class="section-head"><h3>Create Menu Recipe / BOM</h3></div>
+    <form id="recipeForm" class="form-grid">
+      <div class="field"><label>MENU NAME</label><input id="rMenu" placeholder="Fried Rice" required></div>
+      <div class="field"><label>INGREDIENT</label><select id="rItem" required></select></div>
+      <div class="field"><label>QTY PER PORTION</label><input id="rQty" type="number" min="0.0001" step="any" required></div>
+      <div class="field"><label>RECIPE UNIT</label><select id="rUnit"><option>Same as stock unit</option><option>g</option><option>kg</option><option>ml</option><option>L</option><option>pcs</option><option>pack</option></select></div>
+      <div><button class="btn primary">＋ Add Ingredient</button></div>
+    </form>
+    <p class="note">Add each ingredient separately. All ingredients belonging to the same menu name are grouped into one recipe.</p>
+  </div>
+  <div class="section-head"><h3>Recipe Ingredients</h3></div>
+  <div class="panel table-wrap"><table>
+    <thead><tr><th>MENU</th><th>INGREDIENT</th><th>QTY / PORTION</th><th>UNIT</th><th></th></tr></thead>
+    <tbody id="recipeTable"></tbody>
+  </table></div>
+</section>
+
+<!-- WASTE -->
+<section class="page" id="waste">
+  <div class="panel">
+    <div class="section-head"><h3>Record Kitchen Waste</h3></div>
+    <form id="wasteForm" class="form-grid">
+      <div class="field"><label>DATE</label><input id="wDate" type="date" required></div>
+      <div class="field"><label>ITEM</label><select id="wItem" required></select></div>
+      <div class="field"><label>WASTE QUANTITY</label><input id="wQty" type="number" min="0.0001" step="any" required></div>
+      <div class="field"><label>REASON</label><select id="wReason"><option>Spoilage / Expired</option><option>Preparation Loss</option><option>Over-preparation</option><option>Burnt / Overcooked</option><option>Dropped / Damaged</option><option>Staff Meal</option><option>Other</option></select></div>
+      <div class="field"><label>REMARK</label><input id="wRemark" placeholder="Additional details"></div>
+      <div><button class="btn primary">＋ Save Waste</button></div>
+    </form>
+  </div>
+  <div class="section-head"><h3>Waste History</h3></div>
+  <div class="panel table-wrap"><table>
+    <thead><tr><th>DATE</th><th>ITEM</th><th>QTY</th><th>REASON</th><th>REMARK</th><th></th></tr></thead>
+    <tbody id="wasteTable"></tbody>
+  </table></div>
+</section>
+
+<!-- REPORT -->
+<section class="page" id="report">
+  <div class="panel">
+    <div class="form-grid">
+      <div class="field"><label>REPORT DATE</label><input id="reportDate" type="date"></div>
+      <div><label class="note">Select a date to view closing stock</label>
+        <button class="btn primary" type="button" onclick="renderReport()">View Report</button></div>
+      <div><label class="note">Export current report</label>
+        <button class="btn gold" type="button" onclick="exportReport()">Export CSV</button></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="metric-label">OPENING TOTAL</div><div class="metric" id="repOpen">0</div></div>
+    <div class="card"><div class="metric-label">PURCHASE IN</div><div class="metric green" id="repIn">0</div></div>
+    <div class="card"><div class="metric-label">TOTAL OUT + WASTE</div><div class="metric red" id="repOut">0</div></div>
+    <div class="card"><div class="metric-label">EXPECTED CLOSING</div><div class="metric" id="repClose">0</div></div>
+  </div>
+  <div class="panel table-wrap"><table>
+    <thead><tr><th>ITEM</th><th>UNIT</th><th>OPENING</th><th>PURCHASE IN</th><th>MENU OUT</th><th>WASTE</th><th>CLOSING</th></tr></thead>
+    <tbody id="reportTable"></tbody>
+  </table></div>
+</section>
+
+<!-- BACKUP -->
+<section class="page" id="backup">
+  <div class="panel">
+    <h3>Data Backup & Restore</h3>
+    <p class="note">All data is stored in this browser on this device. Export a backup regularly. Keep a copy on another safe device.</p>
+    <div class="actions">
+      <button class="btn primary" onclick="backup()">↓ Download JSON Backup</button>
+      <label class="btn secondary">↑ Restore Backup
+        <input type="file" id="restoreFile" accept=".json" hidden>
+      </label>
+      <button class="btn gold" onclick="exportItems()">Export Inventory CSV</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Sample Data</h3>
+    <p class="note">Load a few demonstration items, menu recipes and transactions to test the app. This will only work if your database is empty.</p>
+    <button class="btn gold" onclick="sampleData()">Load Demo Data</button>
+  </div>
+  <div class="panel">
+    <h3>Important Information</h3>
+    <p class="note">
+      • Offline data is saved in browser Local Storage.<br>
+      • Do not clear browser data without downloading a backup.<br>
+      • This is a single-device system; it does not synchronize between phones and computers.<br>
+      • Recipe units must be checked before real stock deduction.<br>
+      • For production use, verify physical counts and transaction records regularly.
+    </p>
+    <button class="btn danger" onclick="clearData()">Clear All Data</button>
+  </div>
+</section>
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY="aqKitchen_v1";
+const today=()=>new Date().toLocaleDateString("en-CA");
+const blank=()=>({items:[],purchases:[],sales:[],recipes:[],waste:[]});
+let db=load();
+
+function load(){
+ try{return JSON.parse(localStorage.getItem(KEY))||blank()}
+ catch{return blank()}
+}
+function save(){
+ localStorage.setItem(KEY,JSON.stringify(db));
+ render();
+}
+function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function num(v){return Number(v)||0}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function money(n){return num(n).toLocaleString("en-US",{maximumFractionDigits:0})}
+function notify(s){
+ const t=document.getElementById("toast");
+ t.textContent=s;t.style.display="block";
+ setTimeout(()=>t.style.display="none",2400);
+}
+function item(id){return db.items.find(x=>x.id===id)}
+function itemName(id){return item(id)?.name||"Unknown"}
+function menuNames(){return [...new Set(db.recipes.map(r=>r.menu))]}
+
+function factor(from,to){
+ from=(from||"").toLowerCase();to=(to||"").toLowerCase();
+ if(from==="same as stock unit")return 1;
+ if(from===to)return 1;
+ if(from==="g"&&to==="kg")return .001;
+ if(from==="kg"&&to==="g")return 1000;
+ if(from==="ml"&&to==="l")return .001;
+ if(from==="l"&&to==="ml")return 1000;
+ if(from==="viss"&&to==="kg")return 1.6;
+ if(from==="kg"&&to==="viss")return 1/1.6;
+ return null;
+}
+function recipeUsage(itemId,date=null){
+ let total=0;
+ db.sales.filter(s=>!date||s.date<=date).forEach(s=>{
+   db.recipes.filter(r=>r.menu===s.menu&&r.itemId===itemId).forEach(r=>{
+     const f=factor(r.unit,item(itemId)?.unit);
+     if(f!==null)total+=r.qty*f*s.qty;
+   });
+ });
+ return total;
+}
+function stock(itemId,date=null){
+ const it=item(itemId);if(!it)return 0;
+ const before=(d)=>!date||d<=date;
+ const purchases=db.purchases.filter(p=>p.itemId===itemId&&before(p.date))
+   .reduce((a,p)=>a+p.stockQty,0);
+ const waste=db.waste.filter(w=>w.itemId===itemId&&before(w.date))
+   .reduce((a,w)=>a+w.qty,0);
+ return num(it.opening)+purchases-recipeUsage(itemId,date) -waste;
+}
+function movement(itemId,date){
+ const purchases=db.purchases.filter(p=>p.itemId===itemId&&p.date===date)
+   .reduce((a,p)=>a+p.stockQty,0);
+ const usage=db.sales.filter(s=>s.date===date).reduce((a,s)=>{
+   return a+db.recipes.filter(r=>r.menu===s.menu&&r.itemId===itemId)
+   .reduce((b,r)=>{const f=factor(r.unit,item(itemId)?.unit);return b+(f===null?0:r.qty*f*s.qty)},0);
+ },0);
+ const waste=db.waste.filter(w=>w.itemId===itemId&&w.date===date)
+   .reduce((a,w)=>a+w.qty,0);
+ return {purchases,usage,waste};
+}
+function priorStock(itemId,date){
+ const prev=new Date(date+"T12:00:00");
+ prev.setDate(prev.getDate()-1);
+ return stock(itemId,prev.toLocaleDateString("en-CA"));
+}
+function showPage(page){
+ document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+ document.getElementById(page).classList.add("active");
+ document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+ const names={dashboard:"Kitchen Overview",inventory:"Inventory Management",purchase:"Purchase IN",sales:"Menu Sales",recipes:"Recipe / BOM",waste:"Waste Management",report:"Stock Report",backup:"Backup & Settings"};
+ document.getElementById("pageTitle").textContent=names[page];
+}
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
+document.getElementById("today").textContent=new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+["pDate","sDate","wDate","reportDate"].forEach(x=>document.getElementById(x).value=today());
+
+function options(selectId,selected=null){
+ const el=document.getElementById(selectId);
+ el.innerHTML='<option value="">Select item...</option>'+
+ db.items.map(i=>`<option value="${i.id}" ${i.id===selected?"selected":""}>${esc(i.name)} (${esc(i.code)})</option>`).join("");
+}
+function render(){
+ renderOptions();renderItems();renderPurchases();renderSales();renderRecipes();renderWaste();renderDashboard();renderReport();
+}
+function renderOptions(){
+ ["pItem","rItem","wItem"].forEach(x=>options(x));
+ const s=document.getElementById("sMenu");
+ const menus=menuNames();
+ s.innerHTML='<option value="">Select menu...</option>'+menus.map(m=>`<option>${esc(m)}</option>`).join("");
+}
+function renderItems(){
+ const q=(document.getElementById("itemSearch")?.value||"").toLowerCase();
+ const rows=db.items.filter(i=>(i.name+" "+i.code).toLowerCase().includes(q));
+ document.getElementById("itemTable").innerHTML=rows.map(i=>{
+   const st=stock(i.id);
+   const low=st<=i.reorder;
+   return `<tr><td>${esc(i.code)}</td><td><b>${esc(i.name)}</b></td>
+   <td>${esc(i.category)}</td><td>${esc(i.unit)}</td>
+   <td>${num(i.opening)}</td><td><b>${st.toFixed(3)}</b></td>
+   <td><span class="pill ${low?"low":""}">${low?"LOW STOCK":"OK"}</span></td>
+   <td><button class="btn danger" onclick="del('items','${i.id}')">Delete</button></td></tr>`;
+ }).join("")||'<tr><td colspan="8" class="empty">No items yet. Add your first ingredient above.</td></tr>';
+}
+document.getElementById("itemSearch").addEventListener("input",renderItems);
+document.getElementById("itemForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const code=document.getElementById("iCode").value.trim();
+ if(db.items.some(i=>i.code.toLowerCase()===code.toLowerCase()))return notify("Item code already exists.");
+ db.items.push({id:id(),code,name:document.getElementById("iName").value.trim(),
+ category:document.getElementById("iCategory").value,unit:document.getElementById("iUnit").value,
+ opening:num(document.getElementById("iOpening").value),reorder:num(document.getElementById("iReorder").value)});
+ e.target.reset();save();notify("Item added.");
+});
+document.getElementById("purchaseForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const itemId=document.getElementById("pItem").value;
+ const it=item(itemId);if(!it)return notify("Select an item.");
+ const qty=num(document.getElementById("pQty").value);
+ const u=document.getElementById("pUnit").value;
+ const f=factor(u==="Same as stock unit"?it.unit:u,it.unit);
+ if(f===null)return notify("Unsupported unit conversion. Use stock unit.");
+ db.purchases.push({id:id(),date:document.getElementById("pDate").value,
+ itemId,supplier:document.getElementById("pSupplier").value,
+ qty,stockQty:qty*f,price:num(document.getElementById("pPrice").value),
+ ref:document.getElementById("pRef").value});
+ e.target.reset();document.getElementById("pDate").value=today();save();notify("Purchase saved.");
+});
+function renderPurchases(){
+ document.getElementById("purchaseTable").innerHTML=db.purchases.slice().reverse().map(p=>
+ `<tr><td>${esc(p.date)}</td><td>${esc(itemName(p.itemId))}</td>
+ <td>${esc(p.supplier)}</td><td>${p.qty} (${esc(item(p.itemId)?.unit||"")})</td>
+ <td>${money(p.qty*p.price)}</td><td><button class="btn danger" onclick="del('purchases','${p.id}')">Delete</button></td></tr>`
+ ).join("")||'<tr><td colspan="6" class="empty">No purchases recorded.</td></tr>';
+}
+document.getElementById("recipeForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const itemId=document.getElementById("rItem").value;
+ if(!item(itemId))return notify("Select an ingredient.");
+ const menu=document.getElementById("rMenu").value.trim();
+ const qty=num(document.getElementById("rQty").value);
+ const unit=document.getElementById("rUnit").value;
+ const f=factor(unit==="Same as stock unit"?item(itemId).unit:unit,item(itemId).unit);
+ if(f===null)return notify("Unit conversion not supported for this ingredient.");
+ db.recipes.push({id:id(),menu,itemId,qty,unit:unit==="Same as stock unit"?item(itemId).unit:unit});
+ e.target.reset();save();notify("Recipe ingredient saved.");
+});
+function renderRecipes(){
+ document.getElementById("recipeTable").innerHTML=db.recipes.map(r=>
+ `<tr><td><b>${esc(r.menu)}</b></td><td>${esc(itemName(r.itemId))}</td>
+ <td>${r.qty}</td><td>${esc(r.unit)}</td>
+ <td><button class="btn danger" onclick="del('recipes','${r.id}')">Delete</button></td></tr>`
+ ).join("")||'<tr><td colspan="5" class="empty">No recipes yet.</td></tr>';
+}
+document.getElementById("salesForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const menu=document.getElementById("sMenu").value;
+ if(!db.recipes.some(r=>r.menu===menu))return notify("This menu has no recipe.");
+ db.sales.push({id:id(),date:document.getElementById("sDate").value,
+ menu,qty:num(document.getElementById("sQty").value),
+ ref:document.getElementById("sRef").value});
+ e.target.reset();document.getElementById("sDate").value=today();save();notify("Sales saved. Stock usage calculated.");
+});
+function renderSales(){
+ document.getElementById("salesTable").innerHTML=db.sales.slice().reverse().map(s=>
+ `<tr><td>${esc(s.date)}</td><td>${esc(s.menu)}</td><td>${s.qty}</td>
+ <td>${esc(s.ref)}</td><td><button class="btn danger" onclick="del('sales','${s.id}')">Delete</button></td></tr>`
+ ).join("")||'<tr><td colspan="5" class="empty">No menu sales recorded.</td></tr>';
+}
+document.getElementById("wasteForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const itemId=document.getElementById("wItem").value;
+ if(!item(itemId))return notify("Select an item.");
+ db.waste.push({id:id(),date:document.getElementById("wDate").value,
+ itemId,qty:num(document.getElementById("wQty").value),
+ reason:document.getElementById("wReason").value,
+ remark:document.getElementById("wRemark").value});
+ e.target.reset();document.getElementById("wDate").value=today();save();notify("Waste saved.");
+});
+function renderWaste(){
+ document.getElementById("wasteTable").innerHTML=db.waste.slice().reverse().map(w=>
+ `<tr><td>${esc(w.date)}</td><td>${esc(itemName(w.itemId))}</td>
+ <td>${w.qty}</td><td>${esc(w.reason)}</td><td>${esc(w.remark)}</td>
+ <td><button class="btn danger" onclick="del('waste','${w.id}')">Delete</button></td></tr>`
+ ).join("")||'<tr><td colspan="6" class="empty">No waste recorded.</td></tr>';
+}
+function del(type,recordId){
+ if(!confirm("Delete this record?"))return;
+ db[type]=db[type].filter(x=>x.id!==recordId);
+ save();notify("Record deleted.");
+}
+function renderDashboard(){
+ const date=today();
+ document.getElementById("totalItems").textContent=db.items.length;
+ const purchases=db.purchases.filter(p=>p.date===date);
+ const amount=purchases.reduce((a,p)=>a+p.qty*p.price,0);
+ const usage=db.items.reduce((a,i)=>a+movement(i.id,date).usage,0);
+ const waste=db.items.reduce((a,i)=>a+movement(i.id,date).waste,0);
+ const incoming=db.items.reduce((a,i)=>a+movement(i.id,date).purchases,0);
+ const closing=db.items.reduce((a,i)=>a+stock(i.id,date),0);
+ const low=db.items.filter(i=>stock(i.id)<=i.reorder);
+ document.getElementById("todayPurchase").textContent=money(amount);
+ document.getElementById("todayUsage").textContent=usage.toFixed(2);
+ document.getElementById("lowStock").textContent=low.length;
+ document.getElementById("dIn").textContent=incoming.toFixed(2);
+ document.getElementById("dOut").textContent=usage.toFixed(2);
+ document.getElementById("dWaste").textContent=waste.toFixed(2);
+ document.getElementById("dClosing").textContent=closing.toFixed(2);
+ document.getElementById("dashDate").textContent=date;
+ document.getElementById("lowTable").innerHTML=low.slice(0,10).map(i=>
+ `<tr><td>${esc(i.name)}</td><td>${stock(i.id).toFixed(3)} ${esc(i.unit)}</td>
+ <td>${i.reorder} ${esc(i.unit)}</td><td><span class="pill low">REORDER</span></td></tr>`
+ ).join("")||'<tr><td colspan="4" class="empty">All items above reorder level.</td></tr>';
+}
+function renderReport(){
+ const date=document.getElementById("reportDate").value||today();
+ let opening=0,incoming=0,outgoing=0,waste=0,closing=0;
+ const rows=db.items.map(i=>{
+   const open=priorStock(i.id,date),m=movement(i.id,date);
+   const close=open+m.purchases-m.usage-m.waste;
+   opening+=open;incoming+=m.purchases;outgoing+=m.usage;
+   waste+=m.waste;closing+=close;
+   return `<tr><td><b>${esc(i.name)}</b></td><td>${esc(i.unit)}</td>
+   <td>${open.toFixed(3)}</td><td class="green">${m.purchases.toFixed(3)}</td>
+   <td class="red">${m.usage.toFixed(3)}</td><td class="red">${m.waste.toFixed(3)}</td>
+   <td><b>${close.toFixed(3)}</b></td></tr>`;
+ });
+ document.getElementById("repOpen").textContent=opening.toFixed(2);
+ document.getElementById("repIn").textContent=incoming.toFixed(2);
+ document.getElementById("repOut").textContent=(outgoing+waste).toFixed(2);
+ document.getElementById("repClose").textContent=closing.toFixed(2);
+ document.getElementById("reportTable").innerHTML=rows.join("")||'<tr><td colspan="7" class="empty">No inventory items.</td></tr>';
+}
+function csvDownload(filename,rows){
+ const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
+ const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+ downloadBlob(filename,blob);
+}
+function downloadBlob(filename,blob){
+ const a=document.createElement("a"),url=URL.createObjectURL(blob);
+ a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+}
+function exportReport(){
+ const date=document.getElementById("reportDate").value||today();
+ const rows=[["Item","Unit","Opening","Purchase IN","Menu Usage","Waste","Closing"]];
+ db.items.forEach(i=>{
+ const open=priorStock(i.id,date),m=movement(i.id,date);
+ rows.push([i.name,i.unit,open,m.purchases,m.usage,m.waste,open+m.purchases-m.usage-m.waste]);
+ });
+ csvDownload("AQ-Kitchen-Stock-"+date+".csv",rows);
+}
+function exportItems(){
+ const rows=[["Code","Name","Category","Unit","Opening","Reorder Level","Current Stock"]];
+ db.items.forEach(i=>rows.push([i.code,i.name,i.category,i.unit,i.opening,i.reorder,stock(i.id)]));
+ csvDownload("AQ-Kitchen-Inventory.csv",rows);
+}
+function backup(){
+ const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
+ downloadBlob("AQ-Kitchen-Backup-"+today()+".json",blob);
+}
+document.getElementById("restoreFile").addEventListener("change",async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{
+ const data=JSON.parse(await file.text());
+ if(!Array.isArray(data.items)||!Array.isArray(data.sales))throw Error();
+ if(!confirm("Replace current data with this backup?"))return;
+ db={...blank(),...data};save();notify("Backup restored.");
+ }catch{notify("Invalid backup file.");}
+ e.target.value="";
+});
+function clearData(){
+ if(!confirm("This will permanently clear all AQ Kitchen data in this browser. Continue?"))return;
+ if(!confirm("Last confirmation: Have you downloaded a backup?"))return;
+ db=blank();save();notify("Data cleared.");
+}
+function sampleData(){
+ if(db.items.length||db.sales.length)return notify("Demo data requires an empty database.");
+ const chicken={id:id(),code:"KIT-001",name:"Chicken Breast",category:"Meat",unit:"kg",opening:10,reorder:3};
+ const rice={id:id(),code:"KIT-002",name:"Rice",category:"Dry Goods",unit:"kg",opening:20,reorder:5};
+ const oil={id:id(),code:"KIT-003",name:"Cooking Oil",category:"Other",unit:"L",opening:8,reorder:2};
+ db.items.push(chicken,rice,oil);
+ db.recipes.push(
+ {id:id(),menu:"Chicken Fried Rice",itemId:chicken.id,qty:150,unit:"g"},
+ {id:id(),menu:"Chicken Fried Rice",itemId:rice.id,qty:200,unit:"g"},
+ {id:id(),menu:"Chicken Fried Rice",itemId:oil.id,qty:20,unit:"ml"}
+ );
+ db.purchases.push({id:id(),date:today(),itemId:chicken.id,qty:2,stockQty:2,supplier:"Demo Supplier",price:10000});
+ db.sales.push({id:id(),date:today(),menu:"Chicken Fried Rice",qty:5,ref:"DEMO"});
+ db.waste.push({id:id(),date:today(),itemId:chicken.id,qty:.1,reason:"Preparation Loss",remark:"Demo"});
+ save();notify("Demo data loaded.");
+}
+function renderAll(){
+ render();
+}
+function render(){
+ renderOptions();renderItems();renderPurchases();renderSales();
+ renderRecipes();renderWaste();renderDashboard();renderReport();
+}
+render();
+</script>
+</body>
+</html>
